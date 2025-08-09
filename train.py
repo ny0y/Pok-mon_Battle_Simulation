@@ -30,7 +30,7 @@ p2_info = {
     "available_moves": ["tackle", "quick attack", "water gun"],
 }
 
-def train_agent(episodes=1000) -> Tuple[List[float], List[float], int]:  #  Added proper type hints
+def train_agent(episodes=100000) -> Tuple[List[float], List[float], int]: 
     print("Starting training...")
     env = PokemonBattleEnv(p1_info, p2_info)
     agent = QLearningAgent(actions=p1_info["available_moves"])
@@ -91,7 +91,7 @@ def train_agent(episodes=1000) -> Tuple[List[float], List[float], int]:  #  Adde
     return episode_rewards, epsilon_history, win_count
 
 if __name__ == "__main__":
-    episodes = 1000
+    episodes = 10000
     rewards, epsilons, wins = train_agent(episodes=episodes)  # Accept all 3 return values
 
     plt.figure(figsize=(12, 5))

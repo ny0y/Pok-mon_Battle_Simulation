@@ -12,7 +12,7 @@ It allows you to fetch Pokémon data, simulate battles, and interact with an AI 
 
 ## Project Structure
 
-```
+```bash
 pokemon-mcp-server/
 ├── ai/                  # AI and reinforcement learning modules
 │   ├── battle_env.py    # Environment for Pokémon battles for RL
@@ -23,7 +23,7 @@ pokemon-mcp-server/
 │   ├── battle_api.py    # AI battle training routes
 │   └── play.py          # Interactive play mode routes
 ├── data/                # Static data
-│   └── type_chart.json  # Type effectiveness chart
+│   └── type_chart.bash  # Type effectiveness chart
 ├── models/              # Data models
 │   ├── pokemon.py       # Pokémon Pydantic models
 │   └── battle.py        # Battle state models
@@ -45,7 +45,7 @@ pokemon-mcp-server/
 1. Clone the repository:
 
 ```bash
-git clone https://github.com/yourusername/pokemon-mcp-server.git
+git clone https://github.com/ny0y/pokemon-mcp-server.git
 cd pokemon-mcp-server
 ```
 
@@ -78,12 +78,12 @@ Server will start at: `http://127.0.0.1:8000`
 Fetch details for a given Pokémon.
 
 Example:
-```
+```bash
 GET /pokemon/charizard
 ```
 
 Response:
-```json
+```bash
 {
     "name": "charizard",
     "types": ["fire", "flying"],
@@ -106,7 +106,7 @@ Response:
 Starts a new battle and returns the battle ID.
 
 Response:
-```json
+```bash
 { "battle_id": "uuid-generated-id" }
 ```
 
@@ -116,7 +116,7 @@ Response:
 Submit a move for the player and let the AI respond.
 
 Example response:
-```json
+```bash
 {
   "battle_id": "uuid",
   "turn_log": [
@@ -134,7 +134,7 @@ Example response:
 Send a Pokémon state and receive the AI's predicted move.
 
 Request:
-```json
+```bash
 {
   "hp": 50,
   "attack": 70,
@@ -145,7 +145,7 @@ Request:
 ```
 
 Response:
-```json
+```bash
 { "action": "ember" }
 ```
 

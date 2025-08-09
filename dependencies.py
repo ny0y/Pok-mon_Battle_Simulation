@@ -1,9 +1,9 @@
 from fastapi import HTTPException
 from ai.rl_agent import QLearningAgent
-from typing import Union, Optional
+from typing import Optional
 
 # This will hold the global Q-learning agent instance after startup
-agent_instance: Optional[QLearningAgent] = None  
+agent_instance: Optional[QLearningAgent] = None
 
 def get_agent() -> QLearningAgent:
     """
@@ -13,3 +13,4 @@ def get_agent() -> QLearningAgent:
     if agent_instance is None:
         raise HTTPException(status_code=500, detail="AI agent not loaded.")
     return agent_instance
+

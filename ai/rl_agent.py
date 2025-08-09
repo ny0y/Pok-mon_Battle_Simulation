@@ -39,8 +39,12 @@ def save_agent(agent, filename='qtable.pkl'):
 def load_agent(filename='qtable.pkl', actions=None):
     if actions is None:
         raise ValueError("Actions list must be provided")
-    with open(filename, 'rb') as f:
-        q_table = pickle.load(f)
+    try:
+        with open(filename, 'rb') as f:
+            q_table = pickle.load(f)
+    except Exception as e:
+        raise RuntimeError(f"Failed to load agent from {filename}: {e}")
+
     agent = QLearningAgent(actions=actions)
     agent.q_table = q_table
     return agent

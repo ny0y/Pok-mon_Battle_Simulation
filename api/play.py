@@ -7,11 +7,14 @@ from typing import List, Dict, Any, Optional, Tuple
 from fastapi import APIRouter, Depends, HTTPException, Query, Body
 from pydantic import BaseModel, Field
 
+import database.models as models
+from database.auth import get_current_user
 from ai.rl_agent import QLearningAgent
 from dependencies import get_agent
-from api import battle_api
+from api import ai
 from models.battle import PokemonBattleState
 from services.battle_simulator import BattleSimulator
+from database.auth import get_current_user
 
 router = APIRouter()
 
@@ -201,69 +204,68 @@ def canonicalize_state(state: Dict[str, Any]) -> Dict[str, Any]:
             out[k] = str(v)
     return out
 
+from ai.rl_agent import QLearningAgent
+from dependencies import get_agent
+from api import ai
+from models.battle import PokemonBattleState
+from services.battle_simulator import BattleSimulator
+from database.auth import get_current_user
 
 # =========================
 # Routes
 # =========================
-@router.post("/start")
-def start_battle(
-    player: PlayerPokemonIn = Body(description="Player Pokémon as JSON")
+battles = {}
+
+@router.post("/create")
+@router.post("/create")
+async def create_battle(
+    player: PlayerPokemonIn = Body(...),
+    current_user: models.User = Depends(get_current_user),  # Fixed dependency
+    agent: QLearningAgent = Depends(get_agent),  # Fixed dependency
 ):
-    """
-    Start a battle by sending the player's Pokémon JSON.
+    # Build player state
+    player_state = PokemonBattleState.from_pokemon_info(player.dict())
 
-    Example body:
-    {
-      "name":"charizard", "types":["fire","flying"],
-      "hp":78, "attack":84, "defense":78, "speed":100,
-      "available_moves":["ember","wing attack","slash"]
-    }
-    """
-    battle_id = str(uuid.uuid4())
-
-    ai_pick = choose_best_ai_pokemon(player.types)
-
-    player_state = PokemonBattleState.from_pokemon_info(player.model_dump())
+    # Use smart AI selection instead of non-existent method
+    ai_pick = choose_best_ai_pokemon(player_state.types)
     ai_state = PokemonBattleState.from_pokemon_info(ai_pick)
 
-    battle_api.battles[battle_id] = {
+    battle_id = str(uuid.uuid4())
+
+    # Store battle state with user_id linkage
+    battles[battle_id] = {
         "player": player_state.dict(),
         "ai": ai_state.dict(),
+        "user_id": current_user.id,  # Use current_user.id instead of user_id string
     }
 
     return {
         "battle_id": battle_id,
-        "ai_selected": ai_pick["name"],
+        "user_id": current_user.id,
         "player": player_state.dict(),
         "ai": ai_state.dict(),
     }
-
-
+    
 @router.post("/{battle_id}/move")
 def make_move(
     battle_id: str,
     player_move: str = Query(..., description="Move chosen by the player"),
+    current_user: models.User = Depends(get_current_user),  # Add auth
     agent: QLearningAgent = Depends(get_agent),
 ):
-    """
-    Play one turn:
-      - Loads current battle state
-      - Chooses AI move (deterministic heuristic by default)
-      - Runs a one-turn simulation (status, type, STAB included)
-      - Persists updated HP/status
-    """
+    """Play one turn with proper authentication and error handling."""
+    
     if agent is None:
         raise HTTPException(status_code=500, detail="AI agent not loaded.")
-    if battle_id not in battle_api.battles:
+    
+    if battle_id not in battles:  # Use battles instead of ai.battles
         raise HTTPException(status_code=404, detail="Battle not found.")
 
-    current = battle_api.battles[battle_id]
-    try:
-        player_state = PokemonBattleState(**current["player"])
-        ai_state = PokemonBattleState(**current["ai"])
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Invalid stored state: {e}")
-
+    # Check if user owns this battle
+    current = battles[battle_id]
+    if current.get("user_id") != current_user.id:
+        raise HTTPException(status_code=403, detail="Access denied to this battle.")
+    
     if player_state.is_fainted() or ai_state.is_fainted():
         winner = "ai" if player_state.is_fainted() else "player"
         return {"message": "Battle already ended.", "winner": winner}
@@ -310,7 +312,7 @@ def make_move(
     ai_state = sim.p2
 
     # Persist
-    battle_api.battles[battle_id] = {
+    ai.battles[battle_id] = {
         "player": player_state.dict(),
         "ai": ai_state.dict(),
     }

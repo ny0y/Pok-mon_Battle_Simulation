@@ -5,3 +5,15 @@ pydantic
 numpy
 matplotlib
 requests
+python-jose
+sqlalchemy
+passlib[bcrypt]
+typing-extensions
+dotenv
+python-multipart
+python-jose[cryptography]
+python-dotenv
+python-multipart==0.0.6
+pydantic==2.4.0
+bcrypt==4.0.1
+torch

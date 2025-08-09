@@ -3,8 +3,8 @@ from fastapi.responses import JSONResponse
 from train import train_agent 
 from typing import Tuple, Dict, List
 from models.battle import PokemonBattleState
-from ..ai.ai_selection import select_move
-from ..models.pokemon import Pokemon
+from ai.ai_selection import select_ai_pokemon
+from models.pokemon import get_pokemon_data
 
 router = APIRouter()
 
@@ -75,9 +75,9 @@ def apply_moves(battle_id: str, player_move: str, ai_move: str) -> Tuple[Pokemon
 
 @router.post("/ai_move")
 async def get_ai_move(data: dict):
-    ai_pokemon = Pokemon(**data['ai_pokemon'])
-    player_pokemon = Pokemon(**data['player_pokemon'])
+    ai_pokemon = get_pokemon_data(**data['ai_pokemon'])
+    player_pokemon = get_pokemon_data(**data['player_pokemon'])
     available_moves = data['available_moves']
     
-    selected_move = select_move(ai_pokemon, player_pokemon, available_moves)
+    selected_move = select_ai_pokemon(ai_pokemon, player_pokemon, available_moves)
     return {"selected_move": selected_move}
