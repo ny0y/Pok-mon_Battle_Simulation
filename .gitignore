@@ -31,3 +31,4 @@ __pycache__/
 *.coverage.*
 *.cache
 qtable.pkl
+node_modules
