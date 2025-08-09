@@ -30,5 +30,6 @@ __pycache__/
 *.pid.lock
 *.coverage.*
 *.cache
+
 qtable.pkl
 node_modules

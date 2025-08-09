@@ -217,11 +217,10 @@ from database.auth import get_current_user
 battles = {}
 
 @router.post("/create")
-@router.post("/create")
 async def create_battle(
     player: PlayerPokemonIn = Body(...),
-    current_user: models.User = Depends(get_current_user),  # Fixed dependency
-    agent: QLearningAgent = Depends(get_agent),  # Fixed dependency
+    current_user: models.User = Depends(get_current_user),  # dependency
+    agent: QLearningAgent = Depends(get_agent),  # dependency
 ):
     # Build player state
     player_state = PokemonBattleState.from_pokemon_info(player.dict())
@@ -266,12 +265,20 @@ def make_move(
     if current.get("user_id") != current_user.id:
         raise HTTPException(status_code=403, detail="Access denied to this battle.")
     
+    # Load current battle state and create simulator BEFORE checking if fainted
+    battle_data = battles[battle_id]
+    
+    # Build simulator from current state snapshot
+    sim = BattleSimulator(battle_data["player"], battle_data["ai"])
+    
+    # Now get the state objects from the simulator
+    player_state = sim.p1
+    ai_state = sim.p2
+    
+    # Check if they're fainted
     if player_state.is_fainted() or ai_state.is_fainted():
         winner = "ai" if player_state.is_fainted() else "player"
         return {"message": "Battle already ended.", "winner": winner}
-
-    # Build one-turn simulator from current state snapshot
-    sim = BattleSimulator(player_state.dict(), ai_state.dict())
 
     # Ensure RL agent has valid moves matching available moves
     sim_legal = sim.p2.available_moves or ["tackle"]
@@ -311,8 +318,9 @@ def make_move(
     player_state = sim.p1
     ai_state = sim.p2
 
-    # Persist
-    ai.battles[battle_id] = {
+    # Persist - FIX: Use 'battles' not 'ai.battles'
+    battles[battle_id] = {
+        "user_id": current_user.id,  # Keep user_id for ownership
         "player": player_state.dict(),
         "ai": ai_state.dict(),
     }
