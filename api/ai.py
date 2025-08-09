@@ -75,9 +75,10 @@ def apply_moves(battle_id: str, player_move: str, ai_move: str) -> Tuple[Pokemon
 
 @router.post("/ai_move")
 async def get_ai_move(data: dict):
-    ai_pokemon = get_pokemon_data(**data['ai_pokemon'])
-    player_pokemon = get_pokemon_data(**data['player_pokemon'])
-    available_moves = data['available_moves']
+    # Get player pokemon data to extract types
+    player_pokemon = get_pokemon_data(data['player_pokemon']['name'])
     
-    selected_move = select_ai_pokemon(ai_pokemon, player_pokemon, available_moves)
-    return {"selected_move": selected_move}
+    # Select AI pokemon based on player's types
+    selected_pokemon = select_ai_pokemon(player_pokemon.types)
+    
+    return {"selected_pokemon": selected_pokemon}
