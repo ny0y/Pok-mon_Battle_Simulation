@@ -39,22 +39,61 @@ TYPE_EFFECTIVENESS: Dict[str, Dict[str, float]] = {
 }
 
 # move_name -> (type, base_power)
-MOVE_BOOK: Dict[str, Tuple[str, int]] = {
-    "water gun": ("water", 40),
-    "tackle": ("normal", 40),
-    "bite": ("dark", 60),
+MOVE_BOOK: Dict[str, Dict[str, Any]] = {
+    # Water moves
+    "water gun": {"type": "water", "power": 40, "accuracy": 1.0, "crit_rate": 0.0625},
+    "waterfall": {"type": "water", "power": 80, "accuracy": 1.0, "crit_rate": 0.0625},
+    "muddy water": {"type": "water", "power": 90, "accuracy": 0.85, "crit_rate": 0.0625},
+    "hydro pump": {"type": "water", "power": 110, "accuracy": 0.8, "crit_rate": 0.0625},
+    "withdraw": {"type": "water", "power": 0, "accuracy": 1.0, "crit_rate": 0.0625},
 
-    "vine whip": ("grass", 45),
-    "razor leaf": ("grass", 55),
-    "sleep powder": ("grass", 0),  # status-only
+    # Grass moves
+    "vine whip": {"type": "grass", "power": 45, "accuracy": 1.0, "crit_rate": 0.0625},
+    "razor leaf": {"type": "grass", "power": 55, "accuracy": 0.95, "crit_rate": 0.125},
+    "sleep powder": {"type": "grass", "power": 0, "accuracy": 0.75, "crit_rate": 0.0625},
+    "solar beam": {"type": "grass", "power": 120, "accuracy": 1.0, "crit_rate": 0.0625},
+    "grass pledge": {"type": "grass", "power": 80, "accuracy": 1.0, "crit_rate": 0.0625},
+    "grassy glide": {"type": "grass", "power": 70, "accuracy": 1.0, "crit_rate": 0.0625},
+    "grass knot": {"type": "grass", "power": 60, "accuracy": 1.0, "crit_rate": 0.0625},
+    "grassy terrain": {"type": "grass", "power": 0, "accuracy": 1.0, "crit_rate": 0.0625},
 
-    "psybeam": ("psychic", 65),
-    "confusion": ("psychic", 50),
-    "recover": ("psychic", 0),     # status/heal
+    # Fire moves
+    "ember": {"type": "fire", "power": 40, "accuracy": 1.0, "crit_rate": 0.0625},
+    "fire blast": {"type": "fire", "power": 110, "accuracy": 0.85, "crit_rate": 0.0625},
+    "fire punch": {"type": "fire", "power": 75, "accuracy": 1.0, "crit_rate": 0.0625},
 
-    "ember": ("fire", 40),
-    "wing attack": ("flying", 60),
-    "slash": ("normal", 70),
+    # Electric moves
+    "thunder shock": {"type": "electric", "power": 40, "accuracy": 1.0, "crit_rate": 0.0625},
+    "thunderbolt": {"type": "electric", "power": 90, "accuracy": 1.0, "crit_rate": 0.0625},
+
+    # Normal moves
+    "tackle": {"type": "normal", "power": 40, "accuracy": 1.0, "crit_rate": 0.0625},
+    "slash": {"type": "normal", "power": 70, "accuracy": 1.0, "crit_rate": 0.125},
+    "quick attack": {"type": "normal", "power": 40, "accuracy": 1.0, "crit_rate": 0.0625, "priority": 1},
+    "tail whip": {"type": "normal", "power": 0, "accuracy": 1.0, "crit_rate": 0.0625},
+
+    # Dark moves
+    "bite": {"type": "dark", "power": 60, "accuracy": 1.0, "crit_rate": 0.0625},
+
+    # Psychic moves
+    "psybeam": {"type": "psychic", "power": 65, "accuracy": 1.0, "crit_rate": 0.0625},
+    "confusion": {"type": "psychic", "power": 50, "accuracy": 1.0, "crit_rate": 0.0625},
+    "psychic": {"type": "psychic", "power": 90, "accuracy": 1.0, "crit_rate": 0.0625},
+    "teleport": {"type": "psychic", "power": 0, "accuracy": 1.0, "crit_rate": 0.0625},
+    "recover": {"type": "psychic", "power": 0, "accuracy": 1.0, "crit_rate": 0.0625, "heal_frac": 0.5},
+
+    # Flying moves
+    "wing attack": {"type": "flying", "power": 60, "accuracy": 1.0, "crit_rate": 0.0625},
+
+    # Ghost moves
+    "lick": {"type": "ghost", "power": 30, "accuracy": 1.0, "crit_rate": 0.0625},
+    "shadow ball": {"type": "ghost", "power": 80, "accuracy": 1.0, "crit_rate": 0.0625},
+
+    # Poison moves
+    "poison powder": {"type": "poison", "power": 0, "accuracy": 0.75, "crit_rate": 0.0625},
+    "dream eater": {"type": "psychic", "power": 100, "accuracy": 1.0, "crit_rate": 0.0625},
+
+    # Add more moves as needed
 }
 
 # =========================

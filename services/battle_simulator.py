@@ -398,7 +398,11 @@ class BattleSimulator:
         """Execute a single move with all effects."""
         move = self.move_data.get(move_name, {})
         result = {"damage": 0, "flinch": False, "status_inflicted": None}
-        
+
+        # Debug logging for move and damage
+        print(f"[DEBUG] {attacker.name} uses {move_name} on {defender.name}")
+        print(f"[DEBUG] Move data: {move}")
+
         # Check accuracy
         accuracy = move.get("accuracy", 1.0)
         if random.random() > accuracy:
@@ -408,8 +412,9 @@ class BattleSimulator:
                 "move": move_name,
                 "message": f"{attacker.name}'s {move_name} missed!"
             })
+            print(f"[DEBUG] {attacker.name}'s {move_name} missed!")
             return result
-        
+
         # Handle healing moves
         if move.get("heal_frac"):
             heal_amount = int(attacker.max_hp * move["heal_frac"])
@@ -423,14 +428,16 @@ class BattleSimulator:
                 "heal_amount": actual_heal,
                 "current_hp": attacker.hp
             })
+            print(f"[DEBUG] {attacker.name} healed for {actual_heal}, current HP: {attacker.hp}")
             return result
-        
+
         # Calculate and apply damage
         damage = self.calculate_damage(attacker, defender, move_name)
+        print(f"[DEBUG] Calculated damage: {damage}")
         if damage > 0:
             defender.hp = max(0, defender.hp - damage)
             result["damage"] = damage
-            
+
             # Determine effectiveness message
             move_type = move.get("type", "normal")
             effectiveness = self.calculate_type_effectiveness(move_type, defender.types)
@@ -441,7 +448,7 @@ class BattleSimulator:
                 effectiveness_msg = "It's not very effective..."
             elif effectiveness == 0:
                 effectiveness_msg = "It has no effect!"
-            
+
             log.append({
                 "event": "damage",
                 "attacker": attacker.name,
@@ -452,6 +459,7 @@ class BattleSimulator:
                 "effectiveness": effectiveness,
                 "message": effectiveness_msg
             })
+            print(f"[DEBUG] {defender.name} took {damage} damage, remaining HP: {defender.hp}")
         
         # Apply status effects (only if defender isn't fainted and doesn't have status)
         if defender.hp > 0 and not defender.status:
