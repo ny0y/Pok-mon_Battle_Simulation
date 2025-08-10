@@ -1,6 +1,24 @@
 # Pokémon Battle API - Complete Documentation
 
-## 🚀 Base URL
+## � API Endpoint Summary
+
+| Category         | Method | Endpoint                        | Description                                 |
+|------------------|--------|----------------------------------|---------------------------------------------|
+| Auth             | POST   | /register                        | Register a new user                         |
+| Auth             | POST   | /login                           | Login and get JWT token                     |
+| Auth             | GET    | /protected-route                 | Test authentication (requires token)        |
+| Pokémon Data     | GET    | /pokemon/index                   | List/search Pokémon                         |
+| Battle           | POST   | /battle/simulate                 | Simulate a battle between two Pokémon       |
+| Interactive Play | POST   | /play/create                     | Create a new interactive battle             |
+| Interactive Play | POST   | /play/{battle_id}/move           | Make a move in an interactive battle        |
+| AI               | POST   | /ai/train                        | Train the RL agent                          |
+| AI               | POST   | /predict_move                    | Predict a move using the AI                 |
+| AI               | POST   | /ai/ai_move                      | Get AI's move for a given state             |
+| System           | GET    | /health                          | Health check/status                         |
+
+---
+
+## �🚀 Base URL
 ```
 http://127.0.0.1:8000
 ```
