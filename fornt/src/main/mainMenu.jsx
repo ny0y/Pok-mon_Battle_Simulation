@@ -1,7 +1,53 @@
+  // ...existing code...
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 const PokemonBattleGame = () => {
+  // Handle Pokémon selection: fetch types and set phase
+  const handlePokemonSelect = async (pokemonKey) => {
+    setSelectedPokemon(pokemonKey);
+    setSelectedType(null);
+    setPokemonTypeOptions([]);
+    setLoading(true);
+    try {
+      // Fetch Pokémon data from API to get all types
+      const normalizedName = pokemonKey.toLowerCase();
+      const getResponse = await apiCall(
+        `/pokemon/index?name=${encodeURIComponent(normalizedName)}&including_evolution=true&page_size=50`
+      );
+      let character = getResponse.results.find(
+        p => p.name.toLowerCase() === normalizedName
+      );
+      if (!character && getResponse.results.length > 0) {
+        character = getResponse.results[0];
+      }
+      if (!character) {
+        throw new Error(`Pokémon "${pokemonKey}" not found`);
+      }
+      if (character.types && character.types.length > 1) {
+        setPokemonTypeOptions(character.types);
+        setGamePhase('type-selection');
+      } else {
+        // Only one type, proceed to battle
+        setPokemonTypeOptions(character.types || []);
+        setSelectedType(character.types ? character.types[0] : null);
+        startBattle(pokemonKey, character.types ? character.types[0] : null);
+      }
+    } catch (error) {
+      updateStatus("Error loading Pokémon types", "error");
+      setGamePhase('selection');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Handle type selection: start battle with selected type
+  const handleTypeSelect = (type) => {
+    setSelectedType(type);
+    if (selectedPokemon) {
+      startBattle(selectedPokemon, type);
+    }
+  };
   const logRef = useRef(null);
   const navigate = useNavigate();
   
@@ -12,6 +58,8 @@ const PokemonBattleGame = () => {
   const [gamePhase, setGamePhase] = useState('selection');
   const [battleId, setBattleId] = useState(null);
   const [selectedPokemon, setSelectedPokemon] = useState(null);
+  const [selectedType, setSelectedType] = useState(null);
+  const [pokemonTypeOptions, setPokemonTypeOptions] = useState([]);
   const [battleState, setBattleState] = useState({
     player: null,
     ai: null,
@@ -237,73 +285,99 @@ const PokemonBattleGame = () => {
   };
 
   // Start battle with API integration
-  const startBattle = async (pokemonName) => {
+  const startBattle = async (pokemonName, chosenType = null) => {
     try {
       setLoading(true);
       updateStatus("Starting battle...", "info");
-      
+
       // Step 1: GET the pokemon by name to get full data
       const normalizedName = pokemonName.toLowerCase();
       const getResponse = await apiCall(
         `/pokemon/index?name=${encodeURIComponent(normalizedName)}&including_evolution=true&page_size=50`
       );
-      
-      // Find exact match
-      const character = getResponse.results.find(
+
+      // Find the best match: exact name and matching type (if possible)
+      let character = getResponse.results.find(
         p => p.name.toLowerCase() === normalizedName
       );
-      
+      if (!character && getResponse.results.length > 0) {
+        character = getResponse.results[0];
+      }
       if (!character) {
         throw new Error(`Pokémon "${pokemonName}" not found`);
       }
-      
+
+      // Compose moves: prefer moves that match the chosen type
+      let availableMoves = [];
+      if (character.moves && (character.types || chosenType)) {
+        const typesToUse = chosenType ? [chosenType] : character.types;
+        availableMoves = character.moves.filter(mv => {
+          if (typeof mv === 'object' && mv.type && typesToUse.includes(mv.type)) return true;
+          if (typeof mv === 'string') return typesToUse.some(type => mv.toLowerCase().includes(type));
+          return false;
+        });
+        if (availableMoves.length < 4) {
+          const extra = character.moves.filter(mv => !availableMoves.includes(mv));
+          availableMoves = [...availableMoves, ...extra].slice(0, 4);
+        } else {
+          availableMoves = availableMoves.slice(0, 4);
+        }
+      } else {
+        availableMoves = character.moves?.slice(0, 4) || [];
+      }
+
       // Step 2: POST to create battle with detailed data
       const postBody = {
         name: character.name,
-        types: character.types,
-        hp: character.stats.hp,
-        attack: character.stats.attack,
-        defense: character.stats.defense,
-        speed: character.stats.speed,
-        available_moves: character.moves.slice(0, 4),
+        types: chosenType ? [chosenType] : character.types,
+        hp: character.stats?.hp || character.hp,
+        attack: character.stats?.attack || character.attack,
+        defense: character.stats?.defense || character.defense,
+        speed: character.stats?.speed || character.speed,
+        available_moves: availableMoves,
         status: null
       };
-      
+
       const battleResponse = await apiCall('/play/create', {
         method: 'POST',
         body: postBody
       });
-      
+
       setBattleId(battleResponse.battle_id);
-      
-      // Get AI moves from local data
+
+      // Get AI moves from local data or API
       const aiName = battleResponse.ai.name.toLowerCase();
-      const aiMoves = pokemonData[aiName]?.moves || ["tackle", "growl", "scratch", "hyper beam"];
-      
-      // Set battle state from API response
+      let aiMoves = pokemonData[aiName]?.moves;
+      if (!aiMoves && battleResponse.ai.moves) {
+        aiMoves = battleResponse.ai.moves.slice(0, 4);
+      }
+      if (!aiMoves) {
+        aiMoves = ["tackle", "growl", "scratch", "hyper beam"];
+      }
+
       setBattleState({
         player: {
           ...battleResponse.player,
-          moves: postBody.available_moves, // Add moves from our request
+          moves: postBody.available_moves,
           maxHp: battleResponse.player.max_hp,
           sprite: pokemonData[pokemonName]?.sprite || "🔮"
         },
         ai: {
           ...battleResponse.ai,
-          moves: aiMoves, // Add moves from local data
+          moves: aiMoves,
           maxHp: battleResponse.ai.max_hp,
           sprite: pokemonData[aiName]?.sprite || "🔮"
         },
         gameOver: false,
         playerTurn: true
       });
-      
+
       setGamePhase('battle');
       setLogMessages([]);
       logMessage(`⚔️ A wild ${battleResponse.ai.name} appeared!`);
       logMessage(`🎮 Go, ${battleResponse.player.name}!`);
       updateStatus("Battle started! Choose your move!", "success");
-      
+
     } catch (error) {
       console.error('Battle creation failed:', error);
       updateStatus("Using offline mode", "error");
@@ -340,52 +414,53 @@ const PokemonBattleGame = () => {
   };
 
   // Make a move in the battle
-  const makeMove = async (moveName) => {
+  const makeMove = async (move) => {
     if (!battleState.playerTurn || battleState.gameOver || loading) return;
-    
+
+    // move can be string or object
+    const moveName = typeof move === 'string' ? move : move.name || move.move || JSON.stringify(move);
     setLoading(true);
     logMessage(`🎮 ${battleState.player.name} used ${moveName}!`);
-    
+
     try {
       if (battleId) {
-        // API move
-        const response = await apiCall('/play/move', {
+        // Try sending move as object if backend expects it, else fallback to name
+        let moveParam = moveName;
+        let body = undefined;
+        if (typeof move === 'object') {
+          // Some APIs expect move in body
+          body = { move };
+        }
+        const response = await apiCall(`/play/${battleId}/move?player_move=${encodeURIComponent(moveParam)}`, {
           method: 'POST',
-          body: {
-            battle_id: battleId,
-            move: moveName
-          }
+          ...(body ? { body } : {})
         });
-        
-        // Update battle state while preserving moves
+
         setBattleState(prev => ({
           player: {
             ...response.player,
-            moves: prev.player.moves, // Preserve moves from previous state
+            moves: prev.player.moves,
             maxHp: prev.player.maxHp,
             sprite: prev.player.sprite
           },
           ai: {
             ...response.ai,
-            moves: prev.ai.moves, // Preserve moves from previous state
+            moves: prev.ai.moves,
             maxHp: prev.ai.maxHp,
             sprite: prev.ai.sprite
           },
           gameOver: response.game_over,
           playerTurn: response.player_turn
         }));
-        
-        // Add battle log
+
         if (response.log) {
           logMessage(response.log.message, response.log.type);
         }
-        
-        // Handle game over
+
         if (response.game_over) {
           endBattle(response.winner);
         }
       } else {
-        // Local move
         handleLocalMove(moveName);
       }
     } catch (error) {
@@ -453,6 +528,9 @@ const PokemonBattleGame = () => {
   const resetGame = () => {
     setGamePhase('selection');
     setBattleId(null);
+    setSelectedPokemon(null);
+    setSelectedType(null);
+    setPokemonTypeOptions([]);
     setBattleState({ player: null, ai: null, gameOver: false, playerTurn: true });
     setLogMessages([]);
     updateStatus("Choose your Pokémon to start battling!", "info");
@@ -570,10 +648,7 @@ const PokemonBattleGame = () => {
                 <div
                   key={key}
                   style={styles.pokemonOption}
-                  onClick={() => {
-                    setSelectedPokemon(key);
-                    startBattle(key);
-                  }}
+                  onClick={() => handlePokemonSelect(key)}
                   onMouseEnter={(e) => {
                     e.target.style.transform = 'translateY(-5px)';
                     e.target.style.boxShadow = '0 10px 25px rgba(0,123,255,0.2)';
@@ -606,6 +681,31 @@ const PokemonBattleGame = () => {
                   </div>
                   <div>HP: {pokemon.hp}</div>
                 </div>
+              ))}
+            </div>
+          </div>
+        )}
+        
+        {/* Type selection step if needed */}
+        {gamePhase === 'type-selection' && (
+          <div style={{ textAlign: 'center', margin: '30px 0' }}>
+            <h3>Select a Type for {selectedPokemon && pokemonData[selectedPokemon]?.name}:</h3>
+            <div style={{ display: 'flex', justifyContent: 'center', gap: '20px', margin: '20px 0' }}>
+              {pokemonTypeOptions.map(type => (
+                <button
+                  key={type}
+                  style={{
+                    ...styles.moveBtn,
+                    background: '#6c757d',
+                    textTransform: 'uppercase',
+                    fontSize: '1.1em',
+                    padding: '15px 30px'
+                  }}
+                  onClick={() => handleTypeSelect(type)}
+                  disabled={loading}
+                >
+                  {type}
+                </button>
               ))}
             </div>
           </div>
@@ -649,7 +749,7 @@ const PokemonBattleGame = () => {
               <div style={{ textAlign: 'center', margin: '30px 0' }}>
                 <h3>Choose Your Move:</h3>
                 <div style={styles.movesGrid}>
-                  {battleState.player?.moves?.map((move, index) => (  // Fixed with optional chaining
+                  {battleState.player?.moves?.map((move, index) => (
                     <button
                       key={index}
                       style={{
@@ -672,7 +772,7 @@ const PokemonBattleGame = () => {
                         e.target.style.boxShadow = '0 5px 15px rgba(0,123,255,0.3)';
                       }}
                     >
-                      {move}
+                      {typeof move === 'string' ? move : move.name || move.move || JSON.stringify(move)}
                     </button>
                   ))}
                 </div>
