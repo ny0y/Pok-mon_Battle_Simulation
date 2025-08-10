@@ -1,14 +1,15 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Zap, Shield, Moon, Droplet, Heart, Swords, ArrowLeft, RotateCcw, Home } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
 const PokemonBattleGame = () => {
   const logRef = useRef(null);
+  const navigate = useNavigate();
   
   // Backend configuration
-  const API_BASE_URL = 'http://127.0.0.1:8000'; // Your FastAPI server URL
+  const API_BASE_URL = 'http://127.0.0.1:8000';
   
   // Game state
-  const [gamePhase, setGamePhase] = useState('selection'); // 'selection', 'battle', 'connecting'
+  const [gamePhase, setGamePhase] = useState('selection');
   const [battleId, setBattleId] = useState(null);
   const [selectedPokemon, setSelectedPokemon] = useState(null);
   const [battleState, setBattleState] = useState({
@@ -23,8 +24,8 @@ const PokemonBattleGame = () => {
     className: "info" 
   });
   const [loading, setLoading] = useState(false);
-
-  // Pokemon data from your backend structure
+  
+  // Pokemon data
   const pokemonData = {
     charizard: { name: "Charizard", sprite: "🔥", types: ["fire", "flying"], hp: 78, attack: 84, defense: 78, speed: 100, moves: ["ember", "wing attack", "slash", "fire blast"] },
     blastoise: { name: "Blastoise", sprite: "🌊", types: ["water"], hp: 79, attack: 83, defense: 100, speed: 78, moves: ["water gun", "bite", "withdraw", "hydro pump"] },
@@ -34,35 +35,149 @@ const PokemonBattleGame = () => {
     alakazam: { name: "Alakazam", sprite: "🔮", types: ["psychic"], hp: 55, attack: 50, defense: 45, speed: 120, moves: ["confusion", "teleport", "psychic", "recover"] }
   };
 
-  // Move icons mapping
-  const moveIcons = {
-    ember: { icon: Zap, color: "text-red-400" },
-    "fire blast": { icon: Zap, color: "text-red-500" },
-    "wing attack": { icon: Swords, color: "text-gray-400" },
-    slash: { icon: Swords, color: "text-gray-500" },
-    "water gun": { icon: Droplet, color: "text-blue-400" },
-    "hydro pump": { icon: Droplet, color: "text-blue-500" },
-    bite: { icon: Swords, color: "text-gray-600" },
-    withdraw: { icon: Shield, color: "text-blue-300" },
-    "vine whip": { icon: Swords, color: "text-green-400" },
-    "solar beam": { icon: Zap, color: "text-yellow-400" },
-    "poison powder": { icon: Droplet, color: "text-purple-400" },
-    "sleep powder": { icon: Moon, color: "text-purple-300" },
-    "thunder shock": { icon: Zap, color: "text-yellow-400" },
-    thunderbolt: { icon: Zap, color: "text-yellow-500" },
-    "quick attack": { icon: Swords, color: "text-gray-400" },
-    "tail whip": { icon: Shield, color: "text-orange-400" },
-    lick: { icon: Swords, color: "text-purple-400" },
-    hypnosis: { icon: Moon, color: "text-purple-500" },
-    "shadow ball": { icon: Droplet, color: "text-purple-600" },
-    "dream eater": { icon: Heart, color: "text-purple-400" },
-    confusion: { icon: Zap, color: "text-pink-400" },
-    psychic: { icon: Zap, color: "text-pink-500" },
-    teleport: { icon: Shield, color: "text-pink-300" },
-    recover: { icon: Heart, color: "text-green-400" }
+  // CSS styles
+  const styles = {
+    body: {
+      fontFamily: "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif",
+      margin: 0,
+      padding: '20px',
+      background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+      color: '#333',
+      minHeight: '100vh'
+    },
+    container: {
+      maxWidth: '1200px',
+      margin: '0 auto',
+      background: 'rgba(255, 255, 255, 0.95)',
+      borderRadius: '20px',
+      padding: '30px',
+      boxShadow: '0 20px 40px rgba(0,0,0,0.1)'
+    },
+    h1: {
+      textAlign: 'center',
+      color: '#2c3e50',
+      fontSize: '2.5em',
+      marginBottom: '30px',
+      textShadow: '2px 2px 4px rgba(0,0,0,0.1)'
+    },
+    pokemonGrid: {
+      display: 'grid',
+      gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
+      gap: '20px',
+      margin: '30px 0'
+    },
+    pokemonOption: {
+      background: 'linear-gradient(145deg, #f8f9fa, #e9ecef)',
+      border: '3px solid #dee2e6',
+      borderRadius: '15px',
+      padding: '20px',
+      cursor: 'pointer',
+      transition: 'all 0.3s ease',
+      textAlign: 'center',
+      boxShadow: '0 5px 15px rgba(0,0,0,0.1)'
+    },
+    pokemonOptionHover: {
+      transform: 'translateY(-5px)',
+      borderColor: '#007bff',
+      boxShadow: '0 10px 25px rgba(0,123,255,0.2)',
+      background: 'linear-gradient(145deg, #cce7ff, #b3d9ff)'
+    },
+    battleArena: {
+      display: 'grid',
+      gridTemplateColumns: '1fr 1fr',
+      gap: '30px',
+      marginBottom: '30px'
+    },
+    pokemonCard: {
+      background: 'linear-gradient(145deg, #f8f9fa, #e9ecef)',
+      borderRadius: '15px',
+      padding: '25px',
+      textAlign: 'center',
+      boxShadow: '0 10px 25px rgba(0,0,0,0.1)',
+      border: '3px solid #dee2e6',
+      transition: 'all 0.3s ease'
+    },
+    pokemonCardPlayer: {
+      borderColor: '#007bff',
+      background: 'linear-gradient(145deg, #cce7ff, #b3d9ff)'
+    },
+    pokemonCardAi: {
+      borderColor: '#dc3545',
+      background: 'linear-gradient(145deg, #ffcccc, #ffb3b3)'
+    },
+    hpBar: {
+      background: '#e9ecef',
+      borderRadius: '10px',
+      height: '25px',
+      margin: '15px 0',
+      overflow: 'hidden',
+      position: 'relative',
+      boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.1)'
+    },
+    hpFill: {
+      height: '100%',
+      background: 'linear-gradient(90deg, #28a745, #20c997)',
+      transition: 'width 0.5s ease',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      color: 'white',
+      fontWeight: 'bold',
+      textShadow: '1px 1px 2px rgba(0,0,0,0.3)'
+    },
+    movesGrid: {
+      display: 'grid',
+      gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+      gap: '15px',
+      margin: '20px 0'
+    },
+    moveBtn: {
+      background: 'linear-gradient(145deg, #007bff, #0056b3)',
+      color: 'white',
+      border: 'none',
+      padding: '15px 25px',
+      borderRadius: '10px',
+      fontSize: '1.1em',
+      fontWeight: 'bold',
+      cursor: 'pointer',
+      transition: 'all 0.3s ease',
+      textTransform: 'capitalize',
+      boxShadow: '0 5px 15px rgba(0,123,255,0.3)'
+    },
+    log: {
+      background: '#f8f9fa',
+      padding: '25px',
+      margin: '20px 0',
+      borderRadius: '15px',
+      maxHeight: '400px',
+      overflowY: 'auto',
+      border: '2px solid #dee2e6',
+      fontFamily: "'Courier New', monospace",
+      lineHeight: '1.6'
+    },
+    statusBar: {
+      padding: '15px',
+      margin: '20px 0',
+      borderRadius: '10px',
+      textAlign: 'center',
+      fontWeight: 'bold',
+      fontSize: '1.2em'
+    },
+    controlBtn: {
+      background: 'linear-gradient(145deg, #28a745, #1e7e34)',
+      color: 'white',
+      border: 'none',
+      padding: '12px 25px',
+      borderRadius: '8px',
+      fontSize: '1em',
+      fontWeight: 'bold',
+      cursor: 'pointer',
+      margin: '0 10px',
+      transition: 'all 0.3s ease'
+    }
   };
 
-  // Scroll log to bottom when new messages are added
+  // Scroll log to bottom
   useEffect(() => {
     if (logRef.current) {
       logRef.current.scrollTop = logRef.current.scrollHeight;
@@ -71,104 +186,150 @@ const PokemonBattleGame = () => {
 
   // Helper functions
   const logMessage = (message, className = "") => {
-    setLogMessages(prev => [...prev, { message, className, timestamp: Date.now() }]);
+    setLogMessages(prev => [...prev, { message, className }]);
   };
 
   const updateStatus = (message, className = "info") => {
     setStatus({ message, className });
   };
 
-  // API calls to your FastAPI backend
+  // API call function with proper error handling
   const apiCall = async (endpoint, options = {}) => {
     try {
-      const response = await fetch(`${API_BASE_URL}${endpoint}`, {
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        ...options,
-      });
+      const token = localStorage.getItem('accessToken');
       
+      const headers = {
+        'Content-Type': 'application/json',
+        ...(token && { 'Authorization': `Bearer ${token}` })
+      };
+
+      const config = {
+        method: options.method || 'GET',
+        headers,
+        ...options
+      };
+
+      if (options.body) {
+        config.body = JSON.stringify(options.body);
+      }
+
+      const response = await fetch(`${API_BASE_URL}${endpoint}`, config);
+      
+      // Handle Unauthorized
+      if (response.status === 401) {
+        localStorage.removeItem('accessToken');
+        navigate('/login');
+        throw new Error('Session expired. Please login again.');
+      }
+      
+      // Handle other errors
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+        const errorData = await response.json();
+        throw new Error(errorData.detail || `HTTP error! status: ${response.status}`);
       }
       
       return await response.json();
     } catch (error) {
       console.error('API call failed:', error);
-      updateStatus(`Connection error: ${error.message}`, "error");
+      updateStatus(`Error: ${error.message}`, "error");
       throw error;
     }
   };
 
-  const fetchPokemonData = async (pokemonName) => {
-    try {
-      const data = await apiCall(`/pokemon/${pokemonName}`);
-      return {
-        name: data.name,
-        hp: data.stats.hp,
-        maxHp: data.stats.hp,
-        attack: data.stats.attack,
-        defense: data.stats.defense,
-        speed: data.stats.speed,
-        types: data.types,
-        moves: data.moves.slice(0, 4), // Limit to 4 moves
-        statusEffects: {},
-        sprite: pokemonData[pokemonName]?.sprite || "🔮"
-      };
-    } catch (error) {
-      // Fallback to local data if API fails
-      const localData = pokemonData[pokemonName];
-      return {
-        ...localData,
-        maxHp: localData.hp,
-        statusEffects: {}
-      };
-    }
-  };
-
+  // Start battle with API integration
   const startBattle = async (pokemonName) => {
     try {
       setLoading(true);
-      updateStatus("Starting battle with AI...", "info");
+      updateStatus("Starting battle...", "info");
       
-      const battleResponse = await apiCall('/play/start', { method: 'POST' });
+      // Step 1: GET the pokemon by name to get full data
+      const normalizedName = pokemonName.toLowerCase();
+      const getResponse = await apiCall(
+        `/pokemon/index?name=${encodeURIComponent(normalizedName)}&including_evolution=true&page_size=50`
+      );
+      
+      // Find exact match
+      const character = getResponse.results.find(
+        p => p.name.toLowerCase() === normalizedName
+      );
+      
+      if (!character) {
+        throw new Error(`Pokémon "${pokemonName}" not found`);
+      }
+      
+      // Step 2: POST to create battle with detailed data
+      const postBody = {
+        name: character.name,
+        types: character.types,
+        hp: character.stats.hp,
+        attack: character.stats.attack,
+        defense: character.stats.defense,
+        speed: character.stats.speed,
+        available_moves: character.moves.slice(0, 4),
+        status: null
+      };
+      
+      const battleResponse = await apiCall('/play/create', {
+        method: 'POST',
+        body: postBody
+      });
+      
       setBattleId(battleResponse.battle_id);
       
-      // Fetch player pokemon data
-      const playerPokemon = await fetchPokemonData(pokemonName);
+      // Get AI moves from local data
+      const aiName = battleResponse.ai.name.toLowerCase();
+      const aiMoves = pokemonData[aiName]?.moves || ["tackle", "growl", "scratch", "hyper beam"];
       
-      // For now, we'll simulate the AI pokemon selection
-      const aiPokemonNames = Object.keys(pokemonData).filter(name => name !== pokemonName);
-      const aiPokemonName = aiPokemonNames[Math.floor(Math.random() * aiPokemonNames.length)];
-      const aiPokemon = await fetchPokemonData(aiPokemonName);
-      
+      // Set battle state from API response
       setBattleState({
-        player: playerPokemon,
-        ai: aiPokemon,
+        player: {
+          ...battleResponse.player,
+          moves: postBody.available_moves, // Add moves from our request
+          maxHp: battleResponse.player.max_hp,
+          sprite: pokemonData[pokemonName]?.sprite || "🔮"
+        },
+        ai: {
+          ...battleResponse.ai,
+          moves: aiMoves, // Add moves from local data
+          maxHp: battleResponse.ai.max_hp,
+          sprite: pokemonData[aiName]?.sprite || "🔮"
+        },
         gameOver: false,
         playerTurn: true
       });
       
       setGamePhase('battle');
       setLogMessages([]);
-      logMessage(`⚔️ A wild ${aiPokemon.name} appeared!`);
-      logMessage(`🎮 Go, ${playerPokemon.name}!`);
+      logMessage(`⚔️ A wild ${battleResponse.ai.name} appeared!`);
+      logMessage(`🎮 Go, ${battleResponse.player.name}!`);
       updateStatus("Battle started! Choose your move!", "success");
       
     } catch (error) {
-      updateStatus("Failed to start battle. Using offline mode.", "error");
-      // Fallback to local battle
+      console.error('Battle creation failed:', error);
+      updateStatus("Using offline mode", "error");
       startLocalBattle(pokemonName);
     } finally {
       setLoading(false);
     }
   };
 
+  // Fallback to local battle
   const startLocalBattle = (pokemonName) => {
-    const player = { ...pokemonData[pokemonName], maxHp: pokemonData[pokemonName].hp, statusEffects: {} };
-    const aiPokemonNames = Object.keys(pokemonData).filter(name => name !== pokemonName);
-    const aiPokemonName = aiPokemonNames[Math.floor(Math.random() * aiPokemonNames.length)];
-    const ai = { ...pokemonData[aiPokemonName], maxHp: pokemonData[aiPokemonName].hp, statusEffects: {} };
+    const player = { 
+      ...pokemonData[pokemonName], 
+      maxHp: pokemonData[pokemonName].hp,
+      statusEffects: {} 
+    };
+    
+    const aiPokemonNames = Object.keys(pokemonData)
+      .filter(name => name !== pokemonName);
+    
+    const aiName = aiPokemonNames[Math.floor(Math.random() * aiPokemonNames.length)];
+    const ai = { 
+      ...pokemonData[aiName], 
+      maxHp: pokemonData[aiName].hp,
+      statusEffects: {} 
+    };
     
     setBattleState({ player, ai, gameOver: false, playerTurn: true });
     setGamePhase('battle');
@@ -178,6 +339,7 @@ const PokemonBattleGame = () => {
     updateStatus("Battle started! (Offline mode)", "success");
   };
 
+  // Make a move in the battle
   const makeMove = async (moveName) => {
     if (!battleState.playerTurn || battleState.gameOver || loading) return;
     
@@ -186,84 +348,108 @@ const PokemonBattleGame = () => {
     
     try {
       if (battleId) {
-        // Use backend API
-        const response = await apiCall(`/play/${battleId}/move?player_move=${moveName}`);
+        // API move
+        const response = await apiCall('/play/move', {
+          method: 'POST',
+          body: {
+            battle_id: battleId,
+            move: moveName
+          }
+        });
         
-        // Process the response and update battle state
-        if (response.turn_log && response.turn_log.length > 0) {
-          response.turn_log.forEach(log => {
-            if (log.damage > 0) {
-              logMessage(`💥 ${log.attacker} dealt ${log.damage} damage with ${log.move}!`, "damage");
-            } else {
-              logMessage(`🎯 ${log.attacker} used ${log.move}!`);
-            }
-          });
+        // Update battle state while preserving moves
+        setBattleState(prev => ({
+          player: {
+            ...response.player,
+            moves: prev.player.moves, // Preserve moves from previous state
+            maxHp: prev.player.maxHp,
+            sprite: prev.player.sprite
+          },
+          ai: {
+            ...response.ai,
+            moves: prev.ai.moves, // Preserve moves from previous state
+            maxHp: prev.ai.maxHp,
+            sprite: prev.ai.sprite
+          },
+          gameOver: response.game_over,
+          playerTurn: response.player_turn
+        }));
+        
+        // Add battle log
+        if (response.log) {
+          logMessage(response.log.message, response.log.type);
         }
         
-        // Update battle state with response data
-        if (response.player && response.ai) {
-          setBattleState(prev => ({
-            ...prev,
-            player: { ...prev.player, hp: response.player.hp || prev.player.hp },
-            ai: { ...prev.ai, hp: response.ai.hp || prev.ai.hp },
-            playerTurn: true
-          }));
-          
-          // Check for game over
-          if (response.player.hp <= 0) {
-            endBattle("AI");
-          } else if (response.ai.hp <= 0) {
-            endBattle("Player");
-          }
+        // Handle game over
+        if (response.game_over) {
+          endBattle(response.winner);
         }
       } else {
-        // Fallback to local battle logic
+        // Local move
         handleLocalMove(moveName);
       }
     } catch (error) {
-      updateStatus("Move failed, using local calculation", "error");
+      console.error('Move failed:', error);
+      updateStatus("Using local calculation", "error");
       handleLocalMove(moveName);
     } finally {
       setLoading(false);
     }
   };
 
+  // Local move handling
   const handleLocalMove = (moveName) => {
-    // Simple local battle logic
     const damage = Math.floor(Math.random() * 30) + 10;
-    const aiDamage = Math.floor(Math.random() * 25) + 8;
     
     setBattleState(prev => {
-      const newAi = { ...prev.ai, hp: Math.max(0, prev.ai.hp - damage) };
-      const newPlayer = { ...prev.player, hp: Math.max(0, prev.player.hp - aiDamage) };
+      const newAi = { 
+        ...prev.ai, 
+        hp: Math.max(0, prev.ai.hp - damage) 
+      };
       
       logMessage(`💥 Dealt ${damage} damage!`, "damage");
       
-      // AI move
-      const aiMove = newAi.moves[Math.floor(Math.random() * newAi.moves.length)];
+      // AI move (random)
+      const aiMove = prev.ai.moves[Math.floor(Math.random() * prev.ai.moves.length)];
+      const aiDamage = Math.floor(Math.random() * 25) + 8;
+      const newPlayer = { 
+        ...prev.player, 
+        hp: Math.max(0, prev.player.hp - aiDamage) 
+      };
+      
       setTimeout(() => {
-        logMessage(`🤖 ${newAi.name} used ${aiMove}!`);
+        logMessage(`🤖 ${prev.ai.name} used ${aiMove}!`);
         logMessage(`💥 You took ${aiDamage} damage!`, "damage");
-      }, 1000);
+      }, 500);
       
       // Check game over
+      let gameOver = false;
       if (newPlayer.hp <= 0) {
-        setTimeout(() => endBattle("AI"), 1500);
+        setTimeout(() => endBattle("AI"), 1000);
+        gameOver = true;
       } else if (newAi.hp <= 0) {
-        setTimeout(() => endBattle("Player"), 1500);
+        setTimeout(() => endBattle("Player"), 1000);
+        gameOver = true;
       }
       
-      return { ...prev, player: newPlayer, ai: newAi };
+      return {
+        player: newPlayer,
+        ai: newAi,
+        gameOver,
+        playerTurn: !gameOver
+      };
     });
   };
 
+  // End battle
   const endBattle = (winner) => {
     const emoji = winner === "Player" ? "🎉" : "💀";
-    updateStatus(`${emoji} Battle Over! Winner: ${winner}`, winner === "Player" ? "success" : "error");
+    updateStatus(`${emoji} Battle Over! Winner: ${winner}`, 
+                winner === "Player" ? "success" : "error");
     logMessage(`🏆 ${winner} wins the battle!`);
-    setBattleState(prev => ({ ...prev, gameOver: true }));
   };
 
+  // Reset game
   const resetGame = () => {
     setGamePhase('selection');
     setBattleId(null);
@@ -272,49 +458,76 @@ const PokemonBattleGame = () => {
     updateStatus("Choose your Pokémon to start battling!", "info");
   };
 
-  // UI Components
+  // Render Pokémon card
   const PokemonCard = ({ pokemon, isPlayer }) => {
     if (!pokemon) return null;
     
-    const hpPercentage = (pokemon.hp / pokemon.maxHp) * 100;
+    const hpPercentage = Math.max(0, (pokemon.hp / pokemon.maxHp) * 100);
+    const hpClass = hpPercentage <= 25 ? "critical" : 
+                   hpPercentage <= 50 ? "low" : "";
     
     return (
-      <div className={`relative p-6 rounded-xl bg-gradient-to-br ${isPlayer ? 'from-blue-500 to-blue-700' : 'from-red-500 to-red-700'} text-white shadow-2xl transform ${loading && ((isPlayer && battleState.playerTurn) || (!isPlayer && !battleState.playerTurn)) ? 'scale-105' : 'scale-100'} transition-transform duration-300`}>
-        <div className="text-center mb-4">
-          <div className="text-6xl mb-2">{pokemon.sprite}</div>
-          <h3 className="text-xl font-bold">{pokemon.name}</h3>
-          <div className="flex justify-center space-x-2 mt-2">
-            {pokemon.types?.map(type => (
-              <span key={type} className="px-2 py-1 bg-black bg-opacity-30 rounded text-xs uppercase">
-                {type}
-              </span>
-            ))}
-          </div>
-          {Object.keys(pokemon.statusEffects || {}).length > 0 && (
-            <div className="text-sm text-yellow-300 font-semibold mt-1">
-              {Object.keys(pokemon.statusEffects).join(", ").toUpperCase()}
-            </div>
-          )}
+      <div style={{
+        ...styles.pokemonCard,
+        ...(isPlayer ? styles.pokemonCardPlayer : styles.pokemonCardAi)
+      }}>
+        <div style={{ fontSize: '1.8em', fontWeight: 'bold', marginBottom: '15px' }}>
+          {pokemon.name}
+        </div>
+        <div style={{ fontSize: '4em', margin: '20px 0' }}>
+          {pokemon.sprite || "🔮"}
+        </div>
+        <div style={{ margin: '10px 0' }}>
+          {pokemon.types?.map(type => (
+            <span key={type} style={{
+              display: 'inline-block',
+              background: '#6c757d',
+              color: 'white',
+              padding: '3px 8px',
+              borderRadius: '12px',
+              fontSize: '0.8em',
+              margin: '2px',
+              textTransform: 'uppercase'
+            }}>
+              {type}
+            </span>
+          ))}
         </div>
         
-        <div className="space-y-2">
-          <div>
-            <div className="flex justify-between text-sm mb-1">
-              <span>HP</span>
-              <span>{pokemon.hp}/{pokemon.maxHp}</span>
-            </div>
-            <div className="w-full bg-gray-700 rounded-full h-3">
-              <div 
-                className={`h-3 rounded-full transition-all duration-500 ${hpPercentage > 50 ? 'bg-green-400' : hpPercentage > 25 ? 'bg-yellow-400' : 'bg-red-400'}`}
-                style={{ width: `${hpPercentage}%` }}
-              ></div>
-            </div>
+        <div style={styles.hpBar}>
+          <div style={{
+            ...styles.hpFill,
+            width: `${hpPercentage}%`,
+            ...(hpClass === "critical" ? { 
+              background: 'linear-gradient(90deg, #dc3545, #e74c3c)',
+              animation: 'pulse 1s infinite'
+            } : {}),
+            ...(hpClass === "low" ? { 
+              background: 'linear-gradient(90deg, #ffc107, #fd7e14)'
+            } : {})
+          }}>
+            {pokemon.hp}/{pokemon.maxHp}
           </div>
-          
-          <div className="grid grid-cols-3 gap-2 text-xs">
-            <div>ATK: {pokemon.attack}</div>
-            <div>DEF: {pokemon.defense}</div>
-            <div>SPD: {pokemon.speed}</div>
+        </div>
+        
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(2, 1fr)',
+          gap: '10px',
+          margin: '15px 0',
+          fontSize: '0.9em'
+        }}>
+          <div style={{ padding: '5px 10px', background: 'rgba(255,255,255,0.7)', borderRadius: '5px' }}>
+            ATK: {pokemon.attack}
+          </div>
+          <div style={{ padding: '5px 10px', background: 'rgba(255,255,255,0.7)', borderRadius: '5px' }}>
+            DEF: {pokemon.defense}
+          </div>
+          <div style={{ padding: '5px 10px', background: 'rgba(255,255,255,0.7)', borderRadius: '5px' }}>
+            SPD: {pokemon.speed}
+          </div>
+          <div style={{ padding: '5px 10px', background: 'rgba(255,255,255,0.7)', borderRadius: '5px' }}>
+            Status: Normal
           </div>
         </div>
       </div>
@@ -322,41 +535,77 @@ const PokemonBattleGame = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-purple-900 via-blue-900 to-indigo-900 p-4">
-      <div className="max-w-6xl mx-auto">
-        <h1 className="text-4xl font-bold text-white text-center mb-8">🔥 Pokémon Battle Arena ⚡</h1>
+    <div style={styles.body}>
+      <div style={styles.container}>
+        <h1 style={styles.h1}>🔥 Pokémon Battle Simulator ⚡</h1>
         
         {/* Status Bar */}
-        <div className={`text-center mb-6 p-4 rounded-lg font-semibold ${
-          status.className === 'success' ? 'bg-green-600 text-white' :
-          status.className === 'error' ? 'bg-red-600 text-white' :
-          'bg-blue-600 text-white'
-        }`}>
+        <div style={{
+          ...styles.statusBar,
+          ...(status.className === "success" ? {
+            backgroundColor: '#d1ecf1',
+            color: '#0c5460',
+            border: '2px solid #bee5eb'
+          } : {}),
+          ...(status.className === "error" ? {
+            backgroundColor: '#f8d7da',
+            color: '#721c24',
+            border: '2px solid #f5c6cb'
+          } : {}),
+          ...(status.className === "info" ? {
+            backgroundColor: '#d4edda',
+            color: '#155724',
+            border: '2px solid #c3e6cb'
+          } : {})
+        }}>
           {loading && "⏳ "}{status.message}
         </div>
         
-        {/* Pokemon Selection */}
+        {/* Pokémon Selection */}
         {gamePhase === 'selection' && (
-          <div className="bg-white rounded-xl p-8 shadow-2xl">
-            <h2 className="text-2xl font-bold text-center mb-6">Choose Your Pokémon</h2>
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+          <div style={{ textAlign: 'center', margin: '30px 0' }}>
+            <h3>Choose Your Pokémon:</h3>
+            <div style={styles.pokemonGrid}>
               {Object.entries(pokemonData).map(([key, pokemon]) => (
-                <button
+                <div
                   key={key}
+                  style={styles.pokemonOption}
                   onClick={() => {
                     setSelectedPokemon(key);
                     startBattle(key);
                   }}
-                  disabled={loading}
-                  className="p-6 rounded-lg bg-gradient-to-br from-purple-400 to-blue-500 text-white hover:from-purple-500 hover:to-blue-600 transition-all duration-200 transform hover:scale-105 shadow-lg disabled:opacity-50"
+                  onMouseEnter={(e) => {
+                    e.target.style.transform = 'translateY(-5px)';
+                    e.target.style.boxShadow = '0 10px 25px rgba(0,123,255,0.2)';
+                    e.target.style.background = 'linear-gradient(145deg, #cce7ff, #b3d9ff)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.target.style.transform = 'none';
+                    e.target.style.boxShadow = '0 5px 15px rgba(0,0,0,0.1)';
+                    e.target.style.background = 'linear-gradient(145deg, #f8f9fa, #e9ecef)';
+                  }}
                 >
-                  <div className="text-4xl mb-2">{pokemon.sprite}</div>
-                  <div className="font-bold">{pokemon.name}</div>
-                  <div className="text-sm opacity-75">
-                    {pokemon.types.join(", ")}
+                  <div style={{ fontSize: '3em', margin: '10px 0' }}>{pokemon.sprite}</div>
+                  <div style={{ fontSize: '1.3em', fontWeight: 'bold', margin: '10px 0' }}>
+                    {pokemon.name}
                   </div>
-                  <div className="text-xs mt-2">HP: {pokemon.hp}</div>
-                </button>
+                  <div style={{ margin: '10px 0' }}>
+                    {pokemon.types.map(type => (
+                      <span key={type} style={{
+                        display: 'inline-block',
+                        background: '#6c757d',
+                        color: 'white',
+                        padding: '2px 8px',
+                        borderRadius: '10px',
+                        fontSize: '0.8em',
+                        margin: '2px'
+                      }}>
+                        {type}
+                      </span>
+                    ))}
+                  </div>
+                  <div>HP: {pokemon.hp}</div>
+                </div>
               ))}
             </div>
           </div>
@@ -365,67 +614,90 @@ const PokemonBattleGame = () => {
         {/* Battle Arena */}
         {gamePhase === 'battle' && (
           <>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
-              <div>
-                <h2 className="text-xl text-white mb-4 text-center">Your Pokémon</h2>
-                <PokemonCard pokemon={battleState.player} isPlayer={true} />
-              </div>
-              <div>
-                <h2 className="text-xl text-white mb-4 text-center">Enemy Pokémon</h2>
-                <PokemonCard pokemon={battleState.ai} isPlayer={false} />
-              </div>
+            {/* Controls */}
+            <div style={{ textAlign: 'center', margin: '30px 0' }}>
+              <button 
+                style={styles.controlBtn}
+                onClick={resetGame}
+                onMouseEnter={(e) => {
+                  e.target.style.transform = 'translateY(-2px)';
+                  e.target.style.boxShadow = '0 5px 15px rgba(40,167,69,0.3)';
+                }}
+                onMouseLeave={(e) => {
+                  e.target.style.transform = 'none';
+                  e.target.style.boxShadow = 'none';
+                }}
+              >
+                🔄 New Battle
+              </button>
+              <button 
+                style={styles.controlBtn}
+                onClick={() => setLogMessages([])}
+              >
+                🧹 Clear Log
+              </button>
             </div>
             
-            {/* Battle Controls */}
-            <div className="flex justify-center space-x-4 mb-6">
-              <button 
-                onClick={resetGame}
-                className="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-lg flex items-center space-x-2"
-              >
-                <ArrowLeft className="w-4 h-4" />
-                <span>Choose Different Pokémon</span>
-              </button>
-              <button 
-                onClick={() => setLogMessages([])}
-                className="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-lg flex items-center space-x-2"
-              >
-                <RotateCcw className="w-4 h-4" />
-                <span>Clear Log</span>
-              </button>
+            {/* Battle Field */}
+            <div style={styles.battleArena}>
+              <PokemonCard pokemon={battleState.player} isPlayer={true} />
+              <PokemonCard pokemon={battleState.ai} isPlayer={false} />
             </div>
             
             {/* Move Selection */}
             {battleState.playerTurn && !battleState.gameOver && (
-              <div className="bg-white rounded-xl p-6 mb-6 shadow-2xl">
-                <h3 className="text-lg font-semibold mb-4 text-center">Choose Your Move</h3>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                  {battleState.player?.moves.map((move, index) => {
-                    const moveIcon = moveIcons[move] || { icon: Swords, color: "text-gray-400" };
-                    const Icon = moveIcon.icon;
-                    
-                    return (
-                      <button
-                        key={index}
-                        onClick={() => makeMove(move)}
-                        disabled={!battleState.playerTurn || loading || battleState.gameOver}
-                        className="p-4 rounded-lg font-semibold transition-all duration-200 flex flex-col items-center space-y-2 bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white shadow-lg hover:shadow-xl transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed"
-                      >
-                        <Icon className={`w-6 h-6 ${moveIcon.color}`} />
-                        <span className="text-sm capitalize">{move.replace(/[\-_]/g, ' ')}</span>
-                      </button>
-                    );
-                  })}
+              <div style={{ textAlign: 'center', margin: '30px 0' }}>
+                <h3>Choose Your Move:</h3>
+                <div style={styles.movesGrid}>
+                  {battleState.player?.moves?.map((move, index) => (  // Fixed with optional chaining
+                    <button
+                      key={index}
+                      style={{
+                        ...styles.moveBtn,
+                        ...(loading || battleState.gameOver ? { 
+                          background: '#6c757d',
+                          cursor: 'not-allowed'
+                        } : {})
+                      }}
+                      onClick={() => makeMove(move)}
+                      disabled={loading || battleState.gameOver}
+                      onMouseEnter={(e) => {
+                        if (!e.target.disabled) {
+                          e.target.style.transform = 'translateY(-3px)';
+                          e.target.style.boxShadow = '0 8px 25px rgba(0,123,255,0.4)';
+                        }
+                      }}
+                      onMouseLeave={(e) => {
+                        e.target.style.transform = 'none';
+                        e.target.style.boxShadow = '0 5px 15px rgba(0,123,255,0.3)';
+                      }}
+                    >
+                      {move}
+                    </button>
+                  ))}
                 </div>
               </div>
             )}
             
             {/* Game Over */}
             {battleState.gameOver && (
-              <div className="bg-white rounded-xl p-8 text-center shadow-2xl mb-6">
-                <h2 className="text-3xl font-bold mb-4">Battle Complete!</h2>
+              <div style={{
+                padding: '30px',
+                textAlign: 'center',
+                margin: '30px 0',
+                borderRadius: '15px',
+                border: '3px solid #28a745',
+                background: 'linear-gradient(145deg, #f8f9fa, #e9ecef)'
+              }}>
+                <h2 style={{ fontSize: '2em', marginBottom: '20px' }}>Battle Complete!</h2>
                 <button
+                  style={{
+                    ...styles.controlBtn,
+                    background: 'linear-gradient(145deg, #007bff, #0056b3)',
+                    fontSize: '1.2em',
+                    padding: '15px 30px'
+                  }}
                   onClick={resetGame}
-                  className="bg-gradient-to-r from-green-500 to-blue-600 hover:from-green-600 hover:to-blue-700 text-white font-bold py-3 px-8 rounded-lg transition-all duration-200 transform hover:scale-105 shadow-lg"
                 >
                   🔄 New Battle
                 </button>
@@ -435,30 +707,68 @@ const PokemonBattleGame = () => {
         )}
         
         {/* Battle Log */}
-        <div className="bg-black bg-opacity-50 rounded-xl p-6 text-white">
-          <h3 className="text-lg font-semibold mb-4 flex items-center">
-            <span>Battle Log</span>
-            {battleId && <span className="ml-2 text-xs bg-green-600 px-2 py-1 rounded">ONLINE</span>}
-          </h3>
-          <div ref={logRef} className="space-y-2 h-40 overflow-y-auto">
-            {logMessages.map((log, index) => (
-              <div key={index} className={`text-sm p-2 rounded ${
-                log.className === 'damage' ? 'bg-red-600 bg-opacity-50' :
-                log.className === 'heal' ? 'bg-green-600 bg-opacity-50' :
-                log.className === 'status' ? 'bg-yellow-600 bg-opacity-50' :
-                'bg-gray-800 bg-opacity-50'
-              }`}>
-                {log.message}
-              </div>
-            ))}
-            {logMessages.length === 0 && (
-              <div className="text-gray-400 text-sm text-center py-8">
-                Battle log will appear here...
-              </div>
+        <div style={styles.log} ref={logRef}>
+          <h3 style={{ marginTop: 0 }}>
+            Battle Log {battleId && (
+              <span style={{
+                marginLeft: '10px',
+                fontSize: '12px',
+                background: '#28a745',
+                color: 'white',
+                padding: '2px 8px',
+                borderRadius: '4px'
+              }}>
+                ONLINE
+              </span>
             )}
-          </div>
+          </h3>
+          {logMessages.map((log, index) => (
+            <p key={index} style={{
+              margin: '8px 0',
+              padding: '8px',
+              borderRadius: '5px',
+              background: 'rgba(255,255,255,0.7)',
+              color: log.className === 'damage' ? '#dc3545' : 
+                     log.className === 'heal' ? '#28a745' :
+                     log.className === 'status' ? '#6f42c1' : '#333',
+              fontWeight: log.className ? 'bold' : 'normal',
+              fontStyle: log.className === 'status' ? 'italic' : 'normal'
+            }}>
+              {log.message}
+            </p>
+          ))}
+          {logMessages.length === 0 && (
+            <div style={{ padding: '40px 0', textAlign: 'center', color: '#6c757d' }}>
+              Battle log will appear here...
+            </div>
+          )}
+        </div>
+
+        {/* Navigation */}
+        <div style={{ display: 'flex', justifyContent: 'center', marginTop: '20px' }}>
+          <button 
+            style={{
+              padding: '10px 15px',
+              background: '#6c757d',
+              color: 'white',
+              border: 'none',
+              borderRadius: '5px',
+              cursor: 'pointer'
+            }}
+            onClick={() => navigate('/Auther')}
+          >
+            Login
+          </button>
         </div>
       </div>
+      
+      {/* Animation styles */}
+      <style>{`
+        @keyframes pulse {
+          0%, 100% { opacity: 1; }
+          50% { opacity: 0.7; }
+        }
+      `}</style>
     </div>
   );
 };

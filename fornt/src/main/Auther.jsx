@@ -39,33 +39,33 @@ const AuthPage = () => {
 
   // Handle login submission
   const handleSubmit = async (e) => {
-    e.preventDefault();
-    setStatus(prev => ({ ...prev, loading: true, error: '' }));
+  e.preventDefault();
+  setStatus(prev => ({ ...prev, loading: true, error: '' }));
+  
+  try {
+    const response = await axios.post(
+      'http://127.0.0.1:8000/login',
+      {
+        username: credentials.username,
+        password: credentials.password
+      },
+      {
+        headers: { 'Content-Type': 'application/json' },
+        withCredentials: true
+      }
+    );
     
-    try {
-      const response = await axios.post(
-        'http://127.0.0.1:8000/login',
-        {
-          username: credentials.username,
-          password: credentials.password
-        },
-        {
-          headers: { 'Content-Type': 'application/json' },
-          withCredentials: true
-        }
-      );
-      
-      // Handle successful login
-      setStatus({ error: '', loading: false, success: true });
-      
-      // Store tokens and roles (if needed)
-      const accessToken = response?.data?.accessToken;
-      const roles = response?.data?.roles;
-      
-      // Navigate to main page after successful login
-      setTimeout(() => navigate('/mainMenu'), 1000);
-      
-    } catch (error) {
+    // Handle successful login
+    setStatus({ error: '', loading: false, success: true });
+    
+    // Store tokens
+    const accessToken = response?.data?.access_token;
+    localStorage.setItem('accessToken', accessToken); // Store token
+    
+    // Navigate to main page after successful login
+    setTimeout(() => navigate('/mainMenu'), 1000);
+
+  } catch (error) {
       let errorMessage = 'Login failed';
       
       if (error.response) {
